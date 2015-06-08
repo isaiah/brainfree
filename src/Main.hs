@@ -1,21 +1,13 @@
 module Main where
 
-data Op = Inc
-        | Dec
-        | Forward
-        | Backward
-        | Put
-        | Read
-        | LStart
-        | LEnd
+import           Expr
+import           Parser
 
-data Atom = A Op
-          | L [Atom]
-
-newtype Parser a = Parser { runParser :: String -> Maybe (a, String) }
-
-bfParser :: Parser Atom
-
-main = IO ()
+main :: IO ()
 main = do
-  putStrLn "============Brain Free================="
+  let raw = ">+++.>,."
+  case runParser parseExpr raw of
+    Just (expr, _) -> do
+      _ <- evalExpr expr
+      return ()
+    Nothing -> putStrLn "malformatted expression"
