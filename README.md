@@ -1,7 +1,7 @@
 brainfree
 =========
 
-Yet another brainf*ck interpreter
+> Yet another brainf*ck interpreter
 
 Get started
 ===========
@@ -10,3 +10,8 @@ Get started
     cabal install --only-dependencies
     cabal build
     cabal test
+
+
+To run the demo programs:
+
+    ./dist/build/brainfree/brainfree test/bf/99bottles.b
