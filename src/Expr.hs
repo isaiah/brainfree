@@ -110,10 +110,10 @@ parseOp = Parser f
         _ -> Nothing
 
 parseExpr :: Parser [Expr]
-parseExpr = zeroOrMore (parseAtom <|> ((satisfy (== '[')) *> parseLoop <* (satisfy (== ']'))))
+parseExpr = zeroOrMore (parseAtom <|> parseLoop)
   where
     parseAtom = comments *> (A <$> parseOp) <* comments
-    parseLoop = comments *> (Loop <$> parseExpr) <* comments
+    parseLoop = comments *> ((satisfy (== '[')) *> (Loop <$> parseExpr) <* (satisfy (== ']'))) <* comments
 
 evalExpr :: [Expr] -> IO Env
 evalExpr exprs =
