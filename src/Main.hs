@@ -10,8 +10,7 @@ main = do
   let file = head args
   raw <- readFile file
   case runParser parseExpr raw of
-    Just (expr, rst) -> do
-      print rst
+    Just (expr, "") -> do
       _ <- evalExpr expr
       return ()
-    Nothing -> putStrLn "malformatted expression"
+    _ -> putStrLn "syntax error"

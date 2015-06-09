@@ -113,7 +113,7 @@ parseExpr :: Parser [Expr]
 parseExpr = zeroOrMore (parseAtom <|> ((satisfy (== '[')) *> parseLoop <* (satisfy (== ']'))))
   where
     parseAtom = comments *> (A <$> parseOp) <* comments
-    parseLoop = Loop <$> parseExpr
+    parseLoop = comments *> (Loop <$> parseExpr) <* comments
 
 evalExpr :: [Expr] -> IO Env
 evalExpr exprs =

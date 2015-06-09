@@ -14,6 +14,7 @@ spec = do
       runParser parseExpr ">++" `shouldBe` Just ([A Forward, A Inc, A Inc], "")
       runParser parseExpr "> ++" `shouldBe` Just ([A Forward, A Inc, A Inc], "")
       runParser parseExpr ">[>,<[<.]]" `shouldBe` Just ([A Forward,Loop [A Forward,A Read,A Backward,Loop [A Backward,A Put]]], "")
+      runParser parseExpr "[ [[-]>]>]" `shouldBe` Just ([], "")
   describe "comments" $ do
     it "parses anything other than reserved operators" $ do
       runParser comments "hello\n.world" `shouldBe` Just ("hello\n", ".world")
