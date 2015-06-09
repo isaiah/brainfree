@@ -3,6 +3,7 @@
 module Expr where
 
 import           Control.Applicative
+import           Control.Monad       (foldM)
 import           Data.Char
 import           Data.Sequence
 import           Parser
@@ -24,6 +25,12 @@ oneOrMore p = liftA2 (:) p (zeroOrMore p)
 
 spaces :: Parser String
 spaces = zeroOrMore (satisfy isSpace)
+
+keywords :: [Char]
+keywords = "><+-.,[]"
+
+comments :: Parser String
+comments = zeroOrMore $ satisfy (\x -> notElem x keywords)
 
 ident :: Parser String
 ident = liftA2 (:) (satisfy isAlpha) (zeroOrMore (satisfy isAlphaNum))
@@ -52,7 +59,7 @@ data Op = Inc
 
 -- An S-expression is either an atom, or a list of S-expressions.
 data Expr = A Op
-           | Comb [Expr]
+           | Loop [Expr]
   deriving (Show, Eq)
 
 data Env = Env { cursor :: Int, arr :: Seq Int }
@@ -72,17 +79,20 @@ desc env =
 
 puts :: Env -> IO Env
 puts env@Env{cursor, arr} = do
-  print $ chr (index arr cursor)
+  putChar $ chr (index arr cursor)
   return env
 
 updateEnv :: Env -> Char -> IO Env
 updateEnv e@Env { arr, cursor } a =
   return e{ arr = update cursor i arr }
   where
-    f x = if isDigit x
-            then digitToInt x
-            else ord x
+    f x | x == '\n' = 0
+        | otherwise = ord x
     i = f a
+
+enterLoopP :: Env -> Bool
+enterLoopP Env { arr, cursor } =
+  cursor >= 0 && index arr cursor /= 0
 
 parseOp :: Parser Op
 parseOp = Parser f
@@ -99,29 +109,30 @@ parseOp = Parser f
         ',' -> Just (Read, xs)
         _ -> Nothing
 
-parseExpr :: Parser Expr
-parseExpr = spaces *> (Comb <$> (zeroOrMore parseAtom) <|> ((satisfy (== '[')) *> parseComb <* (satisfy (== ']')))) <* spaces
+parseExpr :: Parser [Expr]
+parseExpr = zeroOrMore (parseAtom <|> ((satisfy (== '[')) *> parseLoop <* (satisfy (== ']'))))
   where
-    parseAtom = A <$> parseOp
-    parseComb = Comb <$> (oneOrMore parseExpr)
+    parseAtom = comments *> (A <$> parseOp) <* comments
+    parseLoop = Loop <$> parseExpr
 
-evalExpr :: Expr -> IO Env
-evalExpr expr =
-  go env expr
+evalExpr :: [Expr] -> IO Env
+evalExpr exprs =
+  foldM go env exprs
   where
     env = Env 0 (replicate 3000 0)
     go :: Env -> Expr -> IO Env
     go env (A Inc) = return $ incr env
     go env (A Dec) = return $ desc env
-    go e (A Forward) = return $ e{cursor = (cursor e) + 1}
-    go e (A Backward) = return $ e{cursor = (cursor e) - 1}
+    go e (A Forward) = return $ e { cursor = (cursor e) + 1 }
+    go e (A Backward) = return $ e { cursor = (cursor e) - 1 }
     go e (A Put) =
       puts e
     go e (A Read) = do
       a <- getChar
       updateEnv e a
-    go e (Comb (x:xs)) = do
-      ne <- go e x
-      go ne (Comb xs)
-    go e _ =
-      return e
+    go e loop@(Loop ops) = do
+      if enterLoopP e
+        then do
+          ne <- foldM go e ops
+          go ne loop
+        else return e
