@@ -8,15 +8,16 @@ spec :: Spec
 spec = do
   describe "parseOp" $ do
     it "parses operators" $ do
-      runParser parseOp ">++" `shouldBe` Just (Forward, "++")
+      runParser parseForward ">++" `shouldBe` Just (Forward 1, "++")
+      runParser parseInc "++>" `shouldBe` Just (Inc 2, ">")
   describe "parseExpr" $ do
     it "parses expression" $ do
-      runParser parseExpr ">++" `shouldBe` Just ([A Forward, A Inc, A Inc], "")
-      runParser parseExpr "> ++" `shouldBe` Just ([A Forward, A Inc, A Inc], "")
-      runParser parseExpr ">[>,<[<.]]" `shouldBe` Just ([A Forward,Loop [A Forward,A Read,A Backward,Loop [A Backward,A Put]]], "")
-      runParser parseExpr "[ [[-]>]>]" `shouldBe` Just ([Loop [Loop [Loop [A Dec],A Forward],A Forward]],"")
+       runParser parseExpr ">++" `shouldBe` Just ([Forward 1, Inc 2], "")
+       runParser parseExpr "> ++" `shouldBe` Just ([Forward 1, Inc 2], "")
+       runParser parseExpr ">[>,<[<.]]" `shouldBe` Just ([Forward 1,Loop [Forward 1,Read 1,Backward 1,Loop [Backward 1,Put 1]]], "")
+       runParser parseExpr "[ [[-]>]>]" `shouldBe` Just ([Loop [Loop [Loop [Dec 1],Forward 1],Forward 1]],"")
     it "parses hanoi.b" $ do
-      runParser parseExpr "\n[\n>[-]>+]\n" `shouldBe` Just ([Loop [A Forward,Loop [A Dec],A Forward,A Inc]],"")
+       runParser parseExpr "\n[\n>[-]>+]\n" `shouldBe` Just ([Loop [Forward 1,Loop [Dec 1],Forward 1,Inc 1]],"")
   describe "comments" $ do
     it "parses anything other than reserved operators" $ do
       runParser comments "hello\n.world" `shouldBe` Just ("hello\n", ".world")

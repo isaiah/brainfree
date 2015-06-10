@@ -1,2 +1,5 @@
 dist/
 TAGS
+.cabal-sandbox/
+cabal.sandbox.config
+brainfree.prof

@@ -60,7 +60,7 @@ executable brainfree
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.8 && <4.9, containers
+  build-depends:       base >=4.8 && <4.9, containers, vector
   
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -72,5 +72,5 @@ Test-Suite test
   hs-source-dirs: src, test
   type:   exitcode-stdio-1.0
   main-is: Spec.hs
-  build-depends: base, hspec, containers
+  build-depends: base, hspec, containers, vector
   default-language:    Haskell2010
