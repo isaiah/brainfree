@@ -62,37 +62,41 @@ data Expr = A Op
            | Loop [Expr]
   deriving (Show, Eq)
 
-data Env = Env { cursor :: Int, arr :: Seq Int }
-  deriving Show
+-- data Env = Env { cursor :: Int, arr :: Seq Int }
+--   deriving Show
+
+type Env = ([Int], [Int])
+defaultEnv :: Env
+defaultEnv = (repeat 0, repeat 0)
 
 incr :: Env -> Env
-incr env =
-  let i = cursor env
-      l = arr env
-  in env { arr = update i ((index l i) + 1) l }
+incr (ml, m:mr) = (ml, (m+1):mr)
 
 desc :: Env -> Env
-desc env =
-  let l = arr env
-      i = cursor env
-  in env { arr = update i ((index l i) - 1) l }
+desc (ml, m:mr) =
+  (ml, (m-1):mr)
+
+forward :: Env -> Env
+forward (ml, m:mr) = (m:ml, mr)
+
+backward :: Env -> Env
+backward (m:ml, mr) = (ml, m:mr)
 
 puts :: Env -> IO Env
-puts env@Env{cursor, arr} = do
-  putChar $ chr (index arr cursor)
+puts env@(ml, m:mr) = do
+  putChar $ chr m
   return env
 
 updateEnv :: Env -> Char -> IO Env
-updateEnv e@Env { arr, cursor } a =
-  return e{ arr = update cursor i arr }
+updateEnv (ml, _:mr) a =
+  return (ml, i:mr)
   where
     f x | x == '\n' = 0
         | otherwise = ord x
     i = f a
 
 enterLoopP :: Env -> Bool
-enterLoopP Env { arr, cursor } =
-  cursor >= 0 && index arr cursor /= 0
+enterLoopP (ml, m:mr) = m /= 0
 
 parseOp :: Parser Op
 parseOp = Parser f
@@ -117,14 +121,13 @@ parseExpr = zeroOrMore (parseAtom <|> parseLoop)
 
 evalExpr :: [Expr] -> IO Env
 evalExpr exprs =
-  foldM go env exprs
+  foldM go defaultEnv exprs
   where
-    env = Env 0 (replicate 3000 0)
     go :: Env -> Expr -> IO Env
-    go env (A Inc) = return $ incr env
-    go env (A Dec) = return $ desc env
-    go e (A Forward) = return $ e { cursor = (cursor e) + 1 }
-    go e (A Backward) = return $ e { cursor = (cursor e) - 1 }
+    go e (A Inc) = return $ incr e
+    go e (A Dec) = return $ desc e
+    go e (A Forward) = return $ forward e
+    go e (A Backward) = return $ backward e
     go e (A Put) =
       puts e
     go e (A Read) = do
