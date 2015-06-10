@@ -5,9 +5,9 @@ module Expr where
 import           Control.Applicative
 import           Control.Monad       (foldM)
 import           Data.Char
-import           Data.Vector         hiding (foldM, length)
+import           Data.Sequence hiding (length)
 import           Parser
-import           Prelude             hiding (notElem, replicate)
+import           Prelude             hiding (replicate)
 
 ------------------------------------------------------------
 --  1. Parsing repetitions
@@ -26,7 +26,7 @@ oneOrMore p = liftA2 (:) p (zeroOrMore p)
 spaces :: Parser String
 spaces = zeroOrMore (satisfy isSpace)
 
-keywords :: Vector Char
+keywords :: Seq Char
 keywords = fromList "><+-.,[]"
 
 comments :: Parser String
@@ -58,29 +58,29 @@ data Expr = Inc Int
           | Loop [Expr]
   deriving (Eq, Show)
 
-data Env = Env { cursor :: Int, arr :: Vector Int }
+data Env = Env { cursor :: Int, arr :: Seq Int }
   deriving Show
 
 incr :: Env -> Int -> Env
 incr env x =
   let i = cursor env
       l = arr env
-  in env { arr = update l (singleton (i, ((l ! i) + x))) }
+  in env { arr = update i ((index l i) + x) l }
 
 desc :: Env -> Int -> Env
 desc env x =
   let l = arr env
       i = cursor env
-  in env { arr = update l (singleton (i, ((l ! i) - x))) }
+  in env { arr = update i ((index l i) - x) l }
 
 puts :: Env -> IO Env
 puts env@Env{cursor, arr} = do
-  putChar $ chr (arr ! cursor)
+  putChar $ chr (index arr cursor)
   return env
 
 updateEnv :: Env -> Char -> IO Env
 updateEnv e@Env { arr, cursor } a =
-  return e{ arr = update arr (singleton (cursor, i)) }
+  return e{ arr = update cursor i arr }
   where
     f x | x == '\n' = 0
         | otherwise = ord x
@@ -88,7 +88,7 @@ updateEnv e@Env { arr, cursor } a =
 
 enterLoopP :: Env -> Bool
 enterLoopP Env { arr, cursor } =
-  cursor >= 0 && arr ! cursor /= 0
+  cursor >= 0 && index arr cursor /= 0
 
 -- parseOp :: Parser Expr
 -- parseOp = Parser f
