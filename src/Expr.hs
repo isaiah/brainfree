@@ -5,7 +5,7 @@ module Expr where
 import           Control.Applicative
 import           Control.Monad       (foldM)
 import           Data.Char
-import           Data.Sequence hiding (length)
+import           Data.Sequence       hiding (length)
 import           Parser
 import           Prelude             hiding (replicate)
 
@@ -58,14 +58,8 @@ data Expr = Inc Int
           | Loop [Expr]
   deriving (Eq, Show)
 
-data Expr = A Op
-           | Loop [Expr]
-  deriving (Show, Eq)
-
--- data Env = Env { cursor :: Int, arr :: Seq Int }
---   deriving Show
-
 type Env = ([Int], [Int])
+
 defaultEnv :: Env
 defaultEnv = (repeat 0, repeat 0)
 
