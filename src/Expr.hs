@@ -58,37 +58,47 @@ data Expr = Inc Int
           | Loop [Expr]
   deriving (Eq, Show)
 
-data Env = Env { cursor :: Int, arr :: Seq Int }
-  deriving Show
+data Expr = A Op
+           | Loop [Expr]
+  deriving (Show, Eq)
+
+-- data Env = Env { cursor :: Int, arr :: Seq Int }
+--   deriving Show
+
+type Env = ([Int], [Int])
+defaultEnv :: Env
+defaultEnv = (repeat 0, repeat 0)
 
 incr :: Env -> Int -> Env
-incr env x =
-  let i = cursor env
-      l = arr env
-  in env { arr = update i ((index l i) + x) l }
+incr (ml, m:mr) x = (ml, (m+x):mr)
 
 desc :: Env -> Int -> Env
-desc env x =
-  let l = arr env
-      i = cursor env
-  in env { arr = update i ((index l i) - x) l }
+desc (ml, m:mr) x =
+  (ml, (m-x):mr)
+
+forward :: Env -> Int -> Env
+forward e 0 = e
+forward (ml, m:mr) x = forward (m:ml, mr) (x - 1)
+
+backward :: Env -> Int -> Env
+backward e 0 = e
+backward (m:ml, mr) x = backward (ml, m:mr) (x - 1)
 
 puts :: Env -> IO Env
-puts env@Env{cursor, arr} = do
-  putChar $ chr (index arr cursor)
+puts env@(ml, m:mr) = do
+  putChar $ chr m
   return env
 
 updateEnv :: Env -> Char -> IO Env
-updateEnv e@Env { arr, cursor } a =
-  return e{ arr = update cursor i arr }
+updateEnv (ml, _:mr) a =
+  return (ml, i:mr)
   where
     f x | x == '\n' = 0
         | otherwise = ord x
     i = f a
 
 enterLoopP :: Env -> Bool
-enterLoopP Env { arr, cursor } =
-  cursor >= 0 && index arr cursor /= 0
+enterLoopP (ml, m:mr) = m /= 0
 
 -- parseOp :: Parser Expr
 -- parseOp = Parser f
@@ -125,14 +135,13 @@ parseExpr = zeroOrMore $ comments *> (parseAtom <|> parseLoop) <* comments
 
 evalExpr :: [Expr] -> IO Env
 evalExpr exprs =
-  foldM go env exprs
+  foldM go defaultEnv exprs
   where
-    env = Env 0 (replicate 3000 0)
     go :: Env -> Expr -> IO Env
     go env (Inc i) = return $ incr env i
     go env (Dec i) = return $ desc env i
-    go e (Forward i) = return $ e { cursor = (cursor e) + i }
-    go e (Backward i) = return $ e { cursor = (cursor e) - i }
+    go e (Forward i) = return $ forward e i
+    go e (Backward i) = return $ backward e i
     go e (Put _) =
       puts e
     go e (Read _) = do
