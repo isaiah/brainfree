@@ -1,10 +1,18 @@
-module Parser (Parser(..), satisfy, char, posInt) where
+module Parser (Parser(..), satisfy) where
 
 import           Control.Applicative
 import           Data.Char
 
+-- A parser for a value of type a is a function which takes a String
+-- represnting the input to be parsed, and succeeds or fails; if it
+-- succeeds, it returns the parsed value along with the remainder of
+-- the input.
 newtype Parser a = Parser { runParser :: String -> Maybe (a, String) }
 
+-- For example, 'satisfy' takes a predicate on Char, and constructs a
+-- parser which succeeds only if it sees a Char that satisfies the
+-- predicate (which it then returns).  If it encounters a Char that
+-- does not satisfy the predicate (or an empty input), it fails.
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy p = Parser f
   where
@@ -13,24 +21,12 @@ satisfy p = Parser f
         | p x       = Just (x, xs)
         | otherwise = Nothing
 
-char :: Char -> Parser Char
-char c = satisfy (== c)
-
-posInt :: Parser Integer
-posInt = Parser f
-  where
-    f xs
-      | null ns   = Nothing
-      | otherwise = Just (read ns, rest)
-      where (ns, rest) = span isDigit xs
-
-inParser f = Parser . f . runParser
-
 first :: (a -> b) -> (a,c) -> (b,c)
 first f (x,y) = (f x, y)
 
 instance Functor Parser where
-  fmap = inParser . fmap . fmap . first
+  fmap f parser = Parser parse
+    where parse s = first f <$> runParser parser s
 
 instance Applicative Parser where
   pure a = Parser (\s -> Just (a, s))

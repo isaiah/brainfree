@@ -32,21 +32,9 @@ keywords = fromList "><+-.,[]"
 comments :: Parser String
 comments = zeroOrMore $ satisfy (\x -> notElem x keywords)
 
-ident :: Parser String
-ident = liftA2 (:) (satisfy isAlpha) (zeroOrMore (satisfy isAlphaNum))
-
 ------------------------------------------------------------
 --  3. Parsing S-expressions
 ------------------------------------------------------------
-
--- An "identifier" is represented as just a String; however, only
--- those Strings consisting of a letter followed by any number of
--- letters and digits are valid identifiers.
-type Ident = String
-
--- An "atom" is either an integer value or an identifier.
-data Atom = N Integer | I Ident
-  deriving (Eq, Show)
 
 -- Brainfuck expression is either operators or loop
 data Expr = Inc Int
@@ -125,11 +113,11 @@ parseExpr :: Parser [Expr]
 parseExpr = zeroOrMore $ comments *> (parseAtom <|> parseLoop) <* comments
   where
     parseAtom = parseInc <|> parseDec <|> parseForward <|> parseBackward <|> parsePut <|> parseRead
-    parseLoop = (satisfy (== '[')) *> (Loop <$> parseExpr) <* (satisfy (== ']'))
+    parseLoop = satisfy (== '[') *> (Loop <$> parseExpr) <* satisfy (== ']')
 
 evalExpr :: [Expr] -> IO Env
-evalExpr exprs =
-  foldM go defaultEnv exprs
+evalExpr =
+  foldM go defaultEnv
   where
     go :: Env -> Expr -> IO Env
     go env (Inc i) = return $ incr env i
